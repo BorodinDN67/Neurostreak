@@ -5,45 +5,37 @@ import scipy.signal as signal
 import torch.nn as nn
 from neurostreak.model import BackScatter, Water, AquisticGeometry
 import scipy.fft as sp_fft
+from neurostreak.noise import *
+
+
 template = np.load('data/clean_water_10m/template.npy')
+tail = template[500:]
+template  = template -  np.mean(tail)
 
+water = Water(
+    absorption = 0.2,
+    scattering = 0.2,
+    indicatrix = 0.95
+)
 
-def stft( x):
-    fs = 68.27 * 10**3
-    wind = 256
-    noverlap = wind // 2
+model = MTF_Dolin(
+    water = water,
+    k_theta = 50,
+    L = 128,
+    mu = 0.15,
+    theta0 = 1.0,
+    gamma = 0.4,
+    k = 2.0,
+)
+im_1 = [template for i in range(len(template))]
+im_2 = [model.simulate(template = template, distance = 13) for i in range(len(template))]
 
-    spectrograms = []
-    freqs = None
-    times = None
-
-    if x.ndim == 1:
-        x = x[np.newaxis, :]
-    original_shape = x.shape
-    flattened_x = x.reshape(-1, x.shape[-1])
-
-    for row in flattened_x:
-        row = row - np.median(row)
-        row = np.pad(row, (0, 65535 - len(row)), mode='constant', constant_values=0)
-        f, t, Zxx = signal.stft(row, fs=fs, nperseg=wind, noverlap=noverlap)
-        if freqs is None:
-            freqs, times = f, t
-        spectrograms.append(np.abs(Zxx))
-    spectrograms = np.array(spectrograms)
-    new_shape = original_shape[:-1] + (spectrograms.shape[1], spectrograms.shape[2])
-    result = spectrograms.reshape(new_shape)
-
-    return result, freqs, times
-
-result, freqs, times = stft(template)
-print(result.shape)
-print(freqs.shape)
-print(np.abs(result))
-print(np.angle(result))
-print()
-print(freqs)
-
-print(result[0])
-
-plt.imshow(result[0][:100, :1000])
+fig, ax = plt.subplots(3,2)
+ax[0,0].imshow(im_1)
+ax[0,1].imshow(im_2)
+ax[1,0].plot(template)
+ax[1,1].plot(model.simulate(template = template, distance = 13))
+ax[2,0].plot(template / max(template))
+ax[2,0].plot(model.simulate(template = template, distance = 13) / max(model.simulate(template = template, distance = 13)))
 plt.show()
+

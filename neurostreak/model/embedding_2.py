@@ -63,11 +63,9 @@ class MatchigFiltersEmbedding(nn.Module):
     def __init__(self):
         super(MatchigFiltersEmbedding, self).__init__()
 
-    def
-
     def get_filters(self,template):
         filters = []
-
+  
 
         return filters
 
