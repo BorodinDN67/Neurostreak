@@ -1,18 +1,21 @@
 import numpy as np
 import scipy as sc
+
+from dataclasses import dataclass
 #TODO Чота модель сполпинка найти и построить не удалось, аппелирую к более зрелой версии себя заняться этим
 
 #Класс будет содержать все необходимые для модели долина параметры
 #Очевидно, сделано это с целью наличия экспериментов и возможной автоматизации подбора параметров
 
 #Просто контейнер для параметров симуляции
+@dataclass
 class Water:
-    def __init__(self, absorption, scattering,indicatrix):
-        self.absorption = absorption
-        self.scattering = scattering
-        self.indicatrix = indicatrix
+    absorption: float
+    scattering: float
+    indicatrix: float
 
-        self.velocity = 2.23826 * 10 ** 8 #м/с
+    velocity = 2.23826 * 10 ** 8 #м/с
+
 
 class MTF_Dolin:
     def __init__(self, water, k, gamma, theta0, k_theta, L, mu):

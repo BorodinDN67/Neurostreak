@@ -1,92 +1,151 @@
+import numpy as np
+import scipy
+import scipy.signal as signal_
+import scipy.fft as sp_fft
 import torch.nn as nn
-import  numpy as np
-from scipy.signal import fftconvolve, correlate
-from scipy.special import gamma
-from sympy.codegen.ast import none
-from sympy.physics.units import velocity
+import torch
+from loguru import logger
+
+from ..noise import Water, MTF_Dolin
 
 
 class Embedding(nn.Module):
-    def __init__(self):
+
+    def __init__(self, config):
         super(Embedding, self).__init__()
+        self.config = config
+
+        self.SpectralEmbeddingBlock = SpectralEmbeddingBlock()
+        self.MatchigFiltersEmbedding = MatchigFiltersEmbedding(self.config)
+        # self.DiffusionEmbedding = DiffusionEmbedding(self.signal)
+
+    def forward(self, template, signal):
+        logger.info(f'Начали получать эмбеддинг для батча: {signal.shape}')
+        spectrogram = self.SpectralEmbeddingBlock(template=template, signal=signal)
+        matching_filters = self.MatchigFiltersEmbedding(template=template, signal=signal)
+        logger.success('Получили эмбеддинг')
+        return [spectrogram, matching_filters]
+
+
+#Блок, отвечающий за спектральный анализ входных данных.
+class SpectralEmbeddingBlock(nn.Module):
+    def __init__(self):
+        super(SpectralEmbeddingBlock, self).__init__()
+
+        self.fs = 68.27 * 10 ** 3
+
+    def forward(self, signal, template):
+        #todo: подрообнее разобраться с дополнением сигнала нулями - что это дает и зачем
+        signal = torch.Tensor(signal)
+        template = torch.Tensor(template)
+
+        signal_freq = torch.fft.rfft(signal, 65536)
+        signal_freq = signal_freq[:, :4000]
+        signal_real = torch.real(signal_freq)
+        signal_imag = torch.imag(signal_freq)
+
+        template_freq = torch.fft.rfft(template, 65536)
+        template_freq = template_freq[:, :4000]
+        template_real = torch.real(template_freq)
+        template_imag = torch.imag(template_freq)
+
+        concat_signal = torch.concat([signal_real, signal_imag], dim=1)
+        concat_template =  torch.concat([template_real, template_imag], dim=1)
+        return [concat_signal, concat_template]
+
+
+
+
+#блок эмбеддинга, отвечающий за соответсвие входящего сигнала и математической модели искажения сигнала
+class MatchigFiltersEmbedding(nn.Module):
+
+    def __init__(self, config):
+        super(MatchigFiltersEmbedding, self).__init__()
+
+        self.config = config
+
+    def get_filters(self,template, config):
+        filters = []
+
+        water = Water(
+        absorption = config.absorption,
+        scattering = config.scattering,
+        indicatrix = config.indicatrix
+        )
+
+
+        for distance in range(1,40):
+            model = MTF_Dolin(
+                water = water,
+                k_theta = config.k_theta,
+                k = config.k,
+                L = config.L,
+                mu = config.mu,
+                theta0 = config.theta0,
+                gamma = config.gamma,
+            )
+            filters.append(model.simulate(template, distance))
+
+        return filters
+
+    def forward(self, template, signal):
+        batch_size, lenght = signal.shape
+        template_norm = (template - np.median(template)) / np.std(template)
+        all_filters = []
+        res = [[] for _ in range(batch_size)]
+
+        for b in range(batch_size):
+            filters = self.get_filters(template_norm[b], self.config)
+            all_filters.append(filters)
+
+        num_filters = len(all_filters[0])
+
+        for b in range(batch_size):
+            signal_norm = (signal[b] - np.median(signal[b])) / np.std(signal[b])
+            for f_idx, filter in enumerate(all_filters[b]):
+                corr = signal_.correlate(signal_norm, filter, mode='valid')
+                corr /= len(filter)
+
+                res[b].append(np.max(corr))
+        return torch.Tensor(scipy.special.softmax(res) )
+
+
+class STTFEmbeddingBlock(nn.Module):
+    def __init__(self):
+        super(STTFEmbeddingBlock, self).__init__()
+
+    def forward(self,x):
+        wind = 256
+        noverlap = wind // 2
+
+        spectrograms = []
+        freqs = None
+        times = None
+
+        if x.ndim == 1:
+            x = x[np.newaxis, :]
+        original_shape = x.shape
+        flattened_x = x.reshape(-1, x.shape[-1])
+
+        for row in flattened_x:
+            row = row - np.median(row)
+            row = np.pad(row, (0, 65535 - len(row)), mode='constant', constant_values=0)
+            f, t, Zxx = signal_.stft(row, fs= self.fs, nperseg=wind, noverlap=noverlap)
+            if freqs is None:
+                freqs, times = f, t
+            spectrograms.append(np.abs(Zxx))
+        spectrograms = np.array(spectrograms)
+        new_shape = original_shape[:-1] + (spectrograms.shape[1], spectrograms.shape[2])
+        result = spectrograms.reshape(new_shape)
+
+        return result
+#Блок, очищающий входной снимок от лишних помех и позволяющий использовать исходный сигнал
+# будет хорошо, если переедет в самое начала тракта очистки. Нужно тестить отдельно.
+
+class DiffusionEmbedding(nn.Module):
+
+    def __init__(self):
+        super(DiffusionEmbedding, self).__init__()
         pass
-    def forward(self, x):
-        pass
 
 
-
-def get_matched_filters(template):
-    templates = []
-
-
-    return templates
-
-
-def matched_filters(x, template):
-    filters = get_matched_filters(template)
-    pass
-
-
-
-
-
-#генеральные параметры воды
-class Water():
-    def __init__(self,absorption = None,scattering = None,anisotropy = None, refractive_index = None, theta_scale = None ):
-        self.absorption = absorption #поглощение
-        self.scattering = scattering #рассеяние
-        self.anisotropy = anisotropy #Анизотропия
-        self.refractive_index = refractive_index #переотражение
-
-        self.attenuation = self.absorption + self.scattering
-        self.theta_scale = theta_scale
-
-
-#Временные, пространственные искажениям
-class AquisticGeometry():
-    def __init__(self,water ):
-        self.water = water
-        self.c0 = 299792458.0
-        self.balistic_fotons = 0.8
-
-    def simulate(self,template,type = 'exponential'):
-        if type == 'exponential':
-            time = np.arange(len(template), dtype = np.float64)
-            time *= 30 * 10** -9 / len(template)
-
-            velocity = self.c0 / self.water.refractive_index
-
-            simulate_signal = np.exp( -self.water.attenuation * velocity * time )
-
-            degraded_signal = template * simulate_signal
-            return degraded_signal
-
-#Обратное рассеяние
-class BackScatter():
-    def __init__(self, water,scattered_fraction, shape_gamma = 2, theta_scale = 80*10**-12 ):
-        self.water = water
-        self.shape_gamma = shape_gamma
-        self.theta_scale = theta_scale
-        self.scattered_fraction = scattered_fraction
-
-    def kernel_gamma(self, template):
-        t = np.arange(len(template), dtype = np.float64) * 30 / 840 * 10 ** -9
-        scattered = t ** (self.shape_gamma - 1) * np.exp( -t / self.theta_scale  ) /( gamma(self.shape_gamma) * self.theta_scale ** self.shape_gamma)
-        scattered *= 30 / 840 * 10 ** -9
-        # scattered /= np.max(scattered.sum(), 1e-12)
-
-        kernel = self.scattered_fraction * scattered
-        kernel[0] = 1.0 - self.scattered_fraction
-        kernel /= np.max(kernel)
-
-        return kernel
-
-
-    def simulate(self, template):
-        kernel_gamma = self.kernel_gamma(template)
-        backscatter = fftconvolve(template, kernel_gamma, mode = 'full')[:len(template)]
-        return backscatter
-#Итог
-
-class ModelWater():
-    pass
