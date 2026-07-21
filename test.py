@@ -17,13 +17,17 @@ from neurostreak.model.embedding import Water, MTF_Dolin
 from neurostreak.noise import CEQPF
 from neurostreak.noise import CEAPF
 
+import pywt
 
-template = np.load('data/clean_water_13m/template.npy')
-template = torch.Tensor(template)
+
+
+
+template = np.load('data/clean_water_20m/template.npy')
+# template = torch.Tensor(template)
 
 lst_template = [template for _ in range(2048)]
 lst_template = np.array(lst_template)
-img = torch.Tensor(np.array(Image.open('data/clean_water_13m/data/067.tif')))
+img = np.array(Image.open('data/clean_water_20m/data/002.tif'))
 
 
 
@@ -40,57 +44,71 @@ class Config:
     FOV: int
 
 config = Config(
-    absorption= 0.3666,
-    scattering= 1.289,
+    absorption= 0.179,
+    scattering= 0.289,
     indicatrix=0.9,
-    C1= 1.677e-6,
-    C2= 0.2730,
-    alpha=  0.6577,
-    beta = 3.169,
+    C1= 4.888e-7,
+    C2= 0.4179,
+    alpha=  -0.03681,
+    beta = 3.019,
     light_speed = 2.237e8,
-    FOV = 20,
+    FOV = 180,
 )
-
-# emb = Embedding(config = config)
-# res = emb.forward(lst_template, img)
-# print(res)
 #
-# spectral, matching = res
-# # print(spectral[0])
-# print(spectral[0].shape)
-# print('////////////////////////////////////////////////////////////////////////////////////////////////')
-# # print(spectral[1])
-# print(spectral[1].shape)
-# print('////////////////////////////////////////////////////////////////////////////////////////////////')
-# # print(matching)
-# print(matching.shape)
-# print('////////////////////////////////////////////////////////////////////////////////////////////////')
-# print(matching[1000])
-# plt.plot(matching[1000,:])
+#
+# water = Water(
+#     absorption = config.absorption,
+#     scattering = config.scattering,
+#     indicatrix = config.indicatrix,
+# )
+#
+# ceapf = CEAPF(
+#     absorption = config.absorption,
+#     C1 = config.C1,
+#     C2 = config.C2,
+#     alpha = config.alpha,
+#     beta = config.beta,
+#     light_speed = config.light_speed,
+#     FOV = config.FOV,
+#
+# )
+#
+# filter = ceapf.simulate(40, template)
+# k= 505
+# fig, ax = plt.subplots(4,1)
+# ax[0].plot(filter[0])
+# ax[1].plot(template)
+# ax[2].plot(img[1000][k:k+len(template)] )
+# ax[3].plot(img[1000][k:k+len(template)] /img[1000][k:k+len(template)].sum()  - template/template.sum() )
+# ax[3].plot(img[1000][k:k+len(template)]  /img[1000][k:k+len(template)].sum()  - filter[0][0:len(template)] / filter[0].sum() )
 # plt.show()
-#
-#
-water = Water(
-    absorption = config.absorption,
-    scattering = config.scattering,
-    indicatrix = config.indicatrix,
+
+
+
+template = template - np.mean(template, axis=0)
+template = np.array([template])
+print(template.shape)
+
+from neurostreak.model.embedding import WaveletAmplitudeEmbeddingBlock
+
+emb = WaveletAmplitudeEmbeddingBlock(max_amp= 100, step=1,wavelet='gaus1')
+res = emb(template)
+res_img = emb(img)
+print(res.shape)
+plt.imshow(
+    res[0],
+    aspect='auto',
+    cmap='jet',
+    origin='lower'
+
 )
-
-ceapf = CEAPF(
-    absorption = config.absorption,
-    C1 = config.C1,
-    C2 = config.C2,
-    alpha = config.alpha,
-    beta = config.beta,
-    light_speed = config.light_speed,
-    FOV = config.FOV,
+plt.show()
+print(res_img.shape)
+plt.imshow(
+    res_img[1000],
+    aspect='auto',
+    cmap='jet',
+    origin='lower'
 
 )
-
-filter = ceapf.simulate(40, template)
-
-fig, ax = plt.subplots(3,1)
-ax[0].plot(filter[0])
-ax[1].plot(template)
-ax[2].plot(img[1000][500:1500])
 plt.show()

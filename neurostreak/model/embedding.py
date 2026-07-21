@@ -142,6 +142,32 @@ class STTFEmbeddingBlock(nn.Module):
 #Блок, очищающий входной снимок от лишних помех и позволяющий использовать исходный сигнал
 # будет хорошо, если переедет в самое начала тракта очистки. Нужно тестить отдельно.
 
+
+class WaveletAmplitudeEmbeddingBlock(nn.Module):
+    def __init__(
+        self,
+        wavelet: str = 'gaus1',
+        max_amp: int = 100,
+        step: float = 1,
+    ):
+        super(WaveletAmplitudeEmbeddingBlock,self).__init__()
+        self.max_amp = max_amp
+        self.step = step
+        self.wavelet = wavelet
+
+    def forward(
+        self,
+        signal: np.ndarray,
+    ):
+        import pywt
+
+        signal_3 = np.concatenate([signal,signal,signal], axis=-1)
+        wdth = np.arange(1,self.max_amp, self.step)
+        coef, freqs = pywt.cwt(signal_3, wdth, wavelet= self.wavelet)
+        coef = coef[:,:,len(signal[0]):2 * len(signal[0]) ]
+        coef = coef.transpose(1,0,2)
+        return torch.Tensor(coef)
+
 class DiffusionEmbedding(nn.Module):
 
     def __init__(self):
