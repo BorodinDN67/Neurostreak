@@ -9,11 +9,9 @@ from types import SimpleNamespace
 from PIL import Image
 from fontTools.config import Config
 
-from neurostreak.model import Embedding
 import torch
 from dataclasses import dataclass
 
-from neurostreak.model.embedding import Water, MTF_Dolin
 from neurostreak.noise import CEQPF
 from neurostreak.noise import CEAPF
 
@@ -22,12 +20,12 @@ import pywt
 
 
 
-template = np.load('data/clean_water_20m/template.npy')
+template = np.load('data/clean_water_10m/template.npy')
 # template = torch.Tensor(template)
 
 lst_template = [template for _ in range(2048)]
 lst_template = np.array(lst_template)
-img = np.array(Image.open('data/clean_water_20m/data/002.tif'))
+img = np.array(Image.open('data/clean_water_10m/data/069.tif'))
 
 
 
@@ -85,30 +83,33 @@ config = Config(
 
 
 
-template = template - np.mean(template, axis=0)
-template = np.array([template])
-print(template.shape)
+template = template - np.median(template, axis=0)
+template = np.pad(template, (0, 2048 - len(template)), mode='constant',constant_values=0)
 
-from neurostreak.model.embedding import WaveletAmplitudeEmbeddingBlock
+lst_template = np.array([template for _ in range(2048)])
 
-emb = WaveletAmplitudeEmbeddingBlock(max_amp= 100, step=1,wavelet='gaus1')
-res = emb(template)
-res_img = emb(img)
-print(res.shape)
-plt.imshow(
-    res[0],
-    aspect='auto',
-    cmap='jet',
-    origin='lower'
+img = img - np.median(img, axis=1)
+print(lst_template.shape)
+print(img.shape)
 
-)
+from neurostreak.nn_layers import WaveletAmplitudeEmbeddingBlock
+from neurostreak.model import EmbeddingNeuroStreak
+
+emb = EmbeddingNeuroStreak(max_amp=50, step = 0.5)
+spectral_signal, spectral_template, wavelet_signal, wavelet_template = emb(template = lst_template, signal = img)
+
+print(spectral_signal.shape)
+print(spectral_template.shape)
+print(wavelet_signal.shape)
+print(wavelet_template.shape)
+
+plt.imshow(wavelet_signal[1024])
 plt.show()
-print(res_img.shape)
-plt.imshow(
-    res_img[1000],
-    aspect='auto',
-    cmap='jet',
-    origin='lower'
+plt.imshow(wavelet_template[1024])
+plt.show()
 
-)
+
+fig, ax = plt.subplots(2,1)
+ax[0].plot(lst_template[1024])
+ax[1].plot(img[1024])
 plt.show()
