@@ -1,6 +1,9 @@
 from torch import nn
 import torch
 
+from .nn_layers import CrossAttention
+
+
 class SpectralMergeBlock(nn.Module):
     def __init__(self):
         super(SpectralMergeBlock, self).__init__()
@@ -10,18 +13,50 @@ class SpectralMergeBlock(nn.Module):
 
 class WaveletAttentionBlock(nn.Module):
     def __init__(self,
-            in_channels: int,
-            out_channels: int,
-            kernel_size: int,
-            padding:int,
+            hidden_2d_dim_1: int,
+            hidden_2d_dim_2: int,
+            kernel_size: tuple[int, int],
+            padding:  tuple[int, int],
+            num_heads: int,
+            embed_dim: int,
+            depth: int,
+            max_pool_kernel_size_1: tuple[int, int],
+            max_pool_stride_1: tuple[int, int],
+            max_pool_kernel_size_2: tuple[int, int],
+            max_pool_stride_2: tuple[int, int],
+            max_pool_kernel_size_3: tuple[int, int],
+            max_pool_stride_3: tuple[int, int],
         ):
         super(WaveletAttentionBlock, self).__init__()
 
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, padding=padding)
-        self.CrossAttention = nn.MultiheadAttention(embed_dim=512, num_heads=2)
+        self.convolution = nn.Sequential(
+            nn.Conv2d(in_channels = 1, out_channels = hidden_2d_dim_1, kernel_size = kernel_size, padding=padding),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size = max_pool_kernel_size_1, stride = max_pool_stride_1),
 
-    def forward(self, embedding_image, embedding_signal):
-        pass
+            nn.Conv2d(in_channels = hidden_2d_dim_1, out_channels = hidden_2d_dim_2, kernel_size = kernel_size, padding=padding),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size = max_pool_kernel_size_2, stride = max_pool_stride_2),
+
+            nn.Conv2d(in_channels=hidden_2d_dim_2, out_channels=embed_dim, kernel_size=kernel_size, padding=padding),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=max_pool_kernel_size_3, stride=max_pool_stride_3),
+        )
+        self.cross_attention = nn.ModuleList([
+            CrossAttention(num_heads=num_heads, embed_dim = embed_dim)
+        for _ in range(depth)
+        ])
+
+    def forward(self, embedding_template, embedding_signal):
+
+        template_conv = self.convolution(embedding_template)
+        signal_conv = self.convolution(embedding_signal)
+
+        cross_attention = signal_conv
+        for layer in self.cross_attention:
+            cross_attention = layer(template = template_conv, signal =  cross_attention)
+
+        return template_conv, cross_attention
 
 
 #StreakNet backbone layer //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
