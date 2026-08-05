@@ -4,18 +4,60 @@ import copy
 
 
 
-from ..nn_layers import SpectralMergeBlock, WaveletAttentionBlock, DBCAttentionLayer
+from ..nn_layers import WaveletAttentionBlock, DBCAttentionLayer, SpectralAttentionBlock
 # Данные из фурье - > кросс атеншн между собой
 # Данные из вейвлет -> кросс атенншн между собой
 # осмысление и принятие решения происходит в голове
 
 class NeuroStreakBackbone(nn.Module):
-    def __init__(self):
-        super(NeuroStreakBackbone, self).__init__()
-        pass
-    def forward(self, spectral_signal, spectral_template, wavelet_signal, wavelet_template):
-        pass
+    def __init__(
+            self,
+            hidden_2d_dim_1: int,
+            hidden_2d_dim_2: int,
+            kernel_size: tuple[int, int],
+            padding: tuple[int, int],
+            num_heads: int,
+            embed_dim: int,
+            depth: int,
+            max_pool_kernel_size_1: tuple[int, int],
+            max_pool_stride_1: tuple[int, int],
+            max_pool_kernel_size_2: tuple[int, int],
+            max_pool_stride_2: tuple[int, int],
+            max_pool_kernel_size_3: tuple[int, int],
+            max_pool_stride_3: tuple[int, int],
+            num_scales: int
+    ):
+        super().__init__()
+        self.wavelet_attention_block = WaveletAttentionBlock(
+            hidden_2d_dim_1,
+            hidden_2d_dim_2,
+            kernel_size,
+            padding,
+            num_heads,
+            embed_dim,
+            depth,
+            max_pool_kernel_size_1,
+            max_pool_stride_1,
+            max_pool_kernel_size_2,
+            max_pool_stride_2,
+            max_pool_kernel_size_3,
+            max_pool_stride_3,
+            num_scales
+        )
 
+        self.signal_attention_block = SpectralAttentionBlock(
+            num_heads=num_heads,
+            embed_dim=8,
+            depth=depth,
+        )
+
+    def forward(self, spectral_signal, spectral_template, wavelet_signal, wavelet_template):
+
+
+        template_wvlt_bkbn, signal_wvlt_bkbn = self.wavelet_attention_block(embedding_signal = wavelet_signal.unsqueeze(1),embedding_template = wavelet_template.unsqueeze(1))
+        template_spctrl_bkbn, signal_spctrl_bkbn = self.signal_attention_block(embedding_signal = spectral_signal,embedding_template = spectral_template)
+
+        return template_wvlt_bkbn, signal_wvlt_bkbn, template_spctrl_bkbn, signal_spctrl_bkbn
 
 class StreakNetDBCAttention(nn.Module):
     def __init__(self, width: float = 1.00, depth: float = 1.00, dropout: float = 0.4, act: str = 'silu'):

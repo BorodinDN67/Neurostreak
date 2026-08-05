@@ -26,22 +26,25 @@ class WaveletAttentionBlock(nn.Module):
             max_pool_stride_2: tuple[int, int],
             max_pool_kernel_size_3: tuple[int, int],
             max_pool_stride_3: tuple[int, int],
+            num_scales: int
         ):
-        super(WaveletAttentionBlock, self).__init__()
+        super().__init__()
 
         self.convolution = nn.Sequential(
-            nn.Conv2d(in_channels = 1, out_channels = hidden_2d_dim_1, kernel_size = kernel_size, padding=padding),
-            nn.ReLU(),
+            nn.Conv2d(in_channels = 1, out_channels = hidden_2d_dim_1, kernel_size = kernel_size, padding=padding, stride = (1,2)),
+            nn.ReLU(inplace = True),
             nn.MaxPool2d(kernel_size = max_pool_kernel_size_1, stride = max_pool_stride_1),
 
-            nn.Conv2d(in_channels = hidden_2d_dim_1, out_channels = hidden_2d_dim_2, kernel_size = kernel_size, padding=padding),
-            nn.ReLU(),
+            nn.Conv2d(in_channels = hidden_2d_dim_1, out_channels = hidden_2d_dim_2, kernel_size = kernel_size, padding=padding, stride = (1,2)),
+            nn.ReLU(inplace = True),
             nn.MaxPool2d(kernel_size = max_pool_kernel_size_2, stride = max_pool_stride_2),
 
-            nn.Conv2d(in_channels=hidden_2d_dim_2, out_channels=embed_dim, kernel_size=kernel_size, padding=padding),
-            nn.ReLU(),
+            nn.Conv2d(in_channels=hidden_2d_dim_2, out_channels=embed_dim, kernel_size=kernel_size, padding=padding, stride = (1,2)),
+            nn.ReLU(inplace = True),
             nn.MaxPool2d(kernel_size=max_pool_kernel_size_3, stride=max_pool_stride_3),
         )
+        self.embedding_projection = nn.Linear(in_features = num_scales, out_features = embed_dim)
+
         self.cross_attention = nn.ModuleList([
             CrossAttention(num_heads=num_heads, embed_dim = embed_dim)
         for _ in range(depth)
@@ -51,12 +54,71 @@ class WaveletAttentionBlock(nn.Module):
 
         template_conv = self.convolution(embedding_template)
         signal_conv = self.convolution(embedding_signal)
+        tmp = torch.flatten(template_conv, start_dim = -2).transpose(1, 2)
+        signal = torch.flatten(signal_conv, start_dim = -2).transpose(1, 2)
 
-        cross_attention = signal_conv
+
         for layer in self.cross_attention:
-            cross_attention = layer(template = template_conv, signal =  cross_attention)
+            signal, _ = layer(template = tmp, signal =  signal)
 
-        return template_conv, cross_attention
+        return tmp, signal
+
+class SpectralAttentionBlock(nn.Module):
+    def __init__(
+        self,
+        num_heads: int,
+        embed_dim: int,
+        depth: int
+    ):
+        super().__init__()
+        self.cross_attention = nn.ModuleList([
+            CrossAttention(num_heads=num_heads, embed_dim = embed_dim)
+        for _ in range(depth)
+        ])
+
+        self.features = nn.Conv1d(in_channels = 1, out_channels = 8, kernel_size = 11, padding = 5)
+
+    def forward(self, embedding_template, embedding_signal):
+
+        template_features = self.features(embedding_template)
+        signal_features = self.features(embedding_signal)
+        template_view = template_features.transpose(1, 2)
+        signal_view = signal_features.transpose(1, 2)
+
+
+        for layer in self.cross_attention:
+            signal_view, _ = layer(template = template_view, signal = signal_view)
+        return template_view, signal_view
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #StreakNet backbone layer //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
