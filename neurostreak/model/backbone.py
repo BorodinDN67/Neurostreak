@@ -47,7 +47,7 @@ class NeuroStreakBackbone(nn.Module):
 
         self.signal_attention_block = SpectralAttentionBlock(
             num_heads=num_heads,
-            embed_dim=8,
+            embed_dim=64,
             depth=depth,
         )
 

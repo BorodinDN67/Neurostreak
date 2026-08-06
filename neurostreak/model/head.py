@@ -1,13 +1,34 @@
 import torch.nn as nn
 import torch
-
+from ..nn_layers import SpectralHead, WaveletHead
 
 class NeuroStreakHead(nn.Module):
-    def __init__(self):
+    def __init__(
+            self,
+            spectral_dim : int,
+            wavelet_dim : int,
+            embedding_dim : int,
+        ):
         super(NeuroStreakHead, self).__init__()
-        pass
-    def forward(self, x):
-        pass
+        self.spectral_head = SpectralHead(spectral_dim = spectral_dim, embed_dim = embedding_dim)
+        self.wavelet_head = WaveletHead(wavelet_dim = wavelet_dim, embed_dim = embedding_dim)
+
+        self.classifier = nn.Sequential(
+            nn.Linear(embedding_dim * 2, embedding_dim),
+            nn.ReLU(),
+            nn.Linear(embedding_dim, embedding_dim//2),
+            nn.ReLU(),
+            nn.Linear(embedding_dim//2, 1),
+        )
+
+    def forward(self, spectral_signal, wavelet_signal):
+        spectral_out = self.spectral_head(spectral_signal)
+        wavelet_out = self.wavelet_head(wavelet_signal)
+
+        concat_out = torch.concat([spectral_out, wavelet_out], dim=1)
+
+        return self.classifier(concat_out)
+
 
 
 class StreakNetImagingHead(nn.Module):

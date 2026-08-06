@@ -3,6 +3,11 @@ from .head import StreakNetImagingHead
 from .embedding import StreakNetEmbedding
 from .backbone import StreakNetDBCAttention
 
+from .head import NeuroStreakHead
+from .backbone import NeuroStreakBackbone
+from .embedding import NeuroStreakEmbedding
+
+
 class NeurostreakArch(nn.Module):
     def __init__(self, embedding, backbone, head, config):
         super(NeurostreakArch, self).__init__()

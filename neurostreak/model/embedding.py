@@ -13,7 +13,7 @@ from ..nn_layers import FDEmbeddingBlock, WaveletAmplitudeEmbeddingBlock
 
 
 
-class EmbeddingNeuroStreak(nn.Module):
+class NeuroStreakEmbedding(nn.Module):
     def __init__(
             self,
             wavelet: str = 'gaus1',
@@ -22,7 +22,7 @@ class EmbeddingNeuroStreak(nn.Module):
             width: float =1.0,
             act: str ='silu'
         ):
-        super(EmbeddingNeuroStreak, self).__init__()
+        super().__init__()
 
         self.spectral_embedding_block = FDEmbeddingBlock(width=width, act=act )
         self.wavelet_amplitude_embedding_block = WaveletAmplitudeEmbeddingBlock(wavelet=wavelet, max_amp=max_amp, step=step)

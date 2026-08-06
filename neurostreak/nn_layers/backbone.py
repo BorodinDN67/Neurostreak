@@ -76,7 +76,7 @@ class SpectralAttentionBlock(nn.Module):
         for _ in range(depth)
         ])
 
-        self.features = nn.Conv1d(in_channels = 1, out_channels = 8, kernel_size = 11, padding = 5)
+        self.features = nn.Conv1d(in_channels = 1, out_channels = embed_dim, kernel_size = 11, padding = 5)
 
     def forward(self, embedding_template, embedding_signal):
 
