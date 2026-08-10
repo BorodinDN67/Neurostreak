@@ -28,8 +28,8 @@ class NeuroStreakEmbedding(nn.Module):
         self.wavelet_amplitude_embedding_block = WaveletAmplitudeEmbeddingBlock(wavelet=wavelet, max_amp=max_amp, step=step)
 
     def forward(self, template, signal):
-        spectral_signal = self.spectral_embedding_block(torch.Tensor(signal))
-        spectral_template = self.spectral_embedding_block(torch.Tensor(template))
+        spectral_signal = self.spectral_embedding_block(signal)
+        spectral_template = self.spectral_embedding_block(template)
 
         wavelet_signal = self.wavelet_amplitude_embedding_block(signal)
         wavelet_template = self.wavelet_amplitude_embedding_block(template)

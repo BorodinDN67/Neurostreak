@@ -18,14 +18,14 @@ class WaveletHead(nn.Module):
 
     def forward(self, x):
         projection = self.projector(x)
-        print('projection WaveletHead')
-        print(projection.shape)
+        # print('projection WaveletHead')
+        # print(projection.shape)
         weights, scores = self.adaptive_pool(projection)
-        print('weights WaveletHead')
-        print(weights.shape)
-        print('scores WaveletHead')
-        print(scores.shape)
-        return torch.matmul(weights, projection).sum(dim=-2).squeeze(-1)
+        # print('weights WaveletHead')
+        # print(weights.shape)
+        # print('scores WaveletHead')
+        # print(scores.shape)
+        return (weights.unsqueeze(-1)* projection).sum(dim=-2)
 
 
 class SpectralHead(nn.Module):
@@ -44,14 +44,14 @@ class SpectralHead(nn.Module):
 
     def forward(self, x):
         projection = self.projector(x)
-        print('projection SpectralHead')
-        print(projection.shape)
+        # print('projection SpectralHead')
+        # print(projection.shape)
         weights, scores = self.adaptive_pool(projection)
-        print('weights SpectralHead')
-        print(weights.shape)
-        print('scores SpectralHead')
-        print(scores.shape)
-        return torch.matmul(weights, projection).sum(dim=-2).squeeze(-1)
+        # print('weights SpectralHead')
+        # print(weights.shape)
+        # print('scores SpectralHead')
+        # print(scores.shape)
+        return (weights.unsqueeze(-1)* projection).sum(dim=-2)
 
 
 

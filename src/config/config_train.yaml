@@ -9,3 +9,6 @@ paths:
 dataloader:
   batch_size: 32
   shuffle: True
+process:
+  train_size: 0.8
+  val_size: 0.2

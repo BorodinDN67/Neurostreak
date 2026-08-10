@@ -1,5 +1,6 @@
 from torch import nn
 import torch
+from torch.onnx.ops import attention
 
 from .nn_layers import CrossAttention
 
@@ -59,7 +60,8 @@ class WaveletAttentionBlock(nn.Module):
 
 
         for layer in self.cross_attention:
-            signal, _ = layer(template = tmp, signal =  signal)
+            attention_out = layer(template=tmp, signal=signal)
+            signal = signal + attention_out
 
         return tmp, signal
 
@@ -87,7 +89,8 @@ class SpectralAttentionBlock(nn.Module):
 
 
         for layer in self.cross_attention:
-            signal_view, _ = layer(template = template_view, signal = signal_view)
+            attention_out = layer(template = template_view, signal = signal_view)
+            signal_view = signal_view + attention_out
         return template_view, signal_view
 
 

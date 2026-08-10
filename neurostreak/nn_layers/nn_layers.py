@@ -14,8 +14,8 @@ class CrossAttention(nn.Module):
         query = signal
         key = template
         value = template
-
-        return self.cross_attention(query, key, value)
+        attention_out, _ = self.cross_attention(query, key, value)
+        return attention_out
 
 
 class Convolution(nn.Module):

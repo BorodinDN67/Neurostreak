@@ -138,16 +138,19 @@ class WaveletAmplitudeEmbeddingBlock(nn.Module):
 
     def forward(
         self,
-        signal: np.ndarray,
+        signal: np.ndarray | torch.Tensor,
     ):
         import pywt
+
+        if isinstance(signal, torch.Tensor):
+            signal = signal.to('cpu').numpy()
 
         signal_3 = np.concatenate([signal,signal,signal], axis=-1)
         wdth = np.arange(1,self.max_amp, self.step)
         coef, freqs = pywt.cwt(signal_3, wdth, wavelet= self.wavelet)
         coef = coef[:,:,len(signal[0]):2 * len(signal[0]) ]
         coef = coef.transpose(1,0,2)
-        return torch.Tensor(coef)
+        return torch.from_numpy(coef).to('cuda', dtype = torch.float32)
 
 class DiffusionEmbedding(nn.Module):
 
