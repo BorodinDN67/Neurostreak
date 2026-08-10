@@ -1,11 +1,36 @@
-import torch.nn as nn
+from loguru import logger
+from pathlib import Path
+import torch
+
+class TrainerNeuroStreak:
+    def __init__(
+        self,
+        epochs,
+        checkpoin_path=None
+    ):
+        self.epochs = epochs
+        self.checkpoint_path = checkpoin_path
+
+    def fit(self,model, dataloader, loss, optimizer, scheduler=None):
+        logger.info(f"Начали обучение на {self.epochs + 1} эпохах")
+        for epoch in range(self.epochs):
+            for batch in dataloader:
+                signal, template, target = batch
+
+                res = model(signal = signal, template = template)
+                print(res)
+                res_loss = loss(res, target)
+                print(res_loss)
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
+
+        if scheduler is not None:
+            scheduler.step()
 
 
-class Trainer(nn.Module):
-    def __init(self, loss, optimizer):
-        super(Trainer, self).__init__()
-        pass
-    def fit(self, signal, template, label):
-        pass
-    def predict(self, signal, template, label):
-        pass
+    def save_model(self,model, epoch = None ):
+        path = Path(self.checkpoint_path)
+        filename = f'model_checkpoin_epoch_{epoch}.pt' if epoch else f'model_checkpoin.pt'
+        torch.save(model.state_dict(), path / filename)
+

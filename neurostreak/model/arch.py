@@ -18,10 +18,10 @@ class NeurostreakArch(nn.Module):
 
         self.config = config
 
-    def forward(self, signal):
-        embedding = self.embedding(signal)
-        backbone = self.backbone(embedding)
-        head = self.head(backbone)
+    def forward(self, signal, template):
+        spectral_signal, spectral_template, wavelet_signal, wavelet_template = self.embedding(signal = signal, template = template)
+        _, signal_wvlt_bkbn, _, signal_spctrl_bkbn = self.backbone(spectral_signal, spectral_template, wavelet_signal, wavelet_template)
+        head = self.head(signal_spctrl_bkbn, signal_wvlt_bkbn)
         return head
 
 
@@ -40,7 +40,7 @@ class StreakNetArch(nn.Module):
         self.head = head
 
     def forward(self, signal, template, targets=None):
-        embedding = self.embedding(signal, template)
+        embedding = self.embedding(signal = signal,template =  template)
         outs = self.backbone(embedding)
 
         if self.training:

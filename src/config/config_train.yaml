@@ -1,0 +1,11 @@
+optimizer:
+  lr: 1e-3
+  epochs: 10
+scheduler:
+  gamma: 0.5
+  step_size: 5
+paths:
+  checkpoint_path: 'save/10_08_26_neurostreak'
+dataloader:
+  batch_size: 32
+  shuffle: True

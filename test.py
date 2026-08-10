@@ -62,7 +62,7 @@ from pathlib import Path
 
 config_path = Path('src/config/config.yaml')
 config = Config()
-config.load(config_path)
+config.load_model_config(config_path)
 model = config.get_model_from_config()
 print(model)
 
