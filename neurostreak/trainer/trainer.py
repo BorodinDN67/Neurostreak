@@ -30,8 +30,9 @@ class TrainerNeuroStreak:
                 res_loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
+                cnt_batch += 1
                 if cnt_batch % 100 == 0:
-                    logger.info(f'BCELoss: {res_loss / 100}', )
+                    logger.info(f'BCELoss: {total_loss / 100}', )
                     total_loss = 0
             if epoch % 5 == 0:
                 self.validation(val_dataloader, model)

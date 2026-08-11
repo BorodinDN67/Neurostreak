@@ -47,20 +47,9 @@ class Config:
         )
 
         backbone = NeuroStreakBackbone(
-            hidden_2d_dim_1 = self.backbone['hidden_2d_dim_1'],
-            hidden_2d_dim_2= self.backbone['hidden_2d_dim_2'],
-            kernel_size=self.backbone['kernel_size'],
-            padding=self.backbone['padding'],
+            hidden_dim = self.backbone['hidden_dim'],
             num_heads=self.backbone['num_heads'],
-            embed_dim=self.backbone['embed_dim'],
             depth=self.backbone['depth'],
-            max_pool_kernel_size_1=self.backbone['max_pool_kernel_size_1'],
-            max_pool_stride_1=self.backbone['max_pool_stride_1'],
-            max_pool_kernel_size_2=self.backbone['max_pool_kernel_size_2'],
-            max_pool_stride_2=self.backbone['max_pool_stride_2'],
-            max_pool_kernel_size_3=self.backbone['max_pool_kernel_size_3'],
-            max_pool_stride_3=self.backbone['max_pool_stride_3'],
-            num_scales=self.backbone['num_scales']
         )
 
 

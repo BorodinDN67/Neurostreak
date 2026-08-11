@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class CrossAttention(nn.Module):
     def __init__(self, embed_dim: int, num_heads: int):
-        super(CrossAttention, self).__init__()
+        super().__init__()
 
         self.embed_dim = embed_dim
         self.num_heads = num_heads
@@ -14,7 +14,7 @@ class CrossAttention(nn.Module):
         query = signal
         key = template
         value = template
-        attention_out, _ = self.cross_attention(query, key, value)
+        attention_out, _ = self.cross_attention(query, key, value, need_weights=False)
         return attention_out
 
 

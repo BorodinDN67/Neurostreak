@@ -30,7 +30,7 @@ def main():
 
     dataset = NeuroStreakDataset(DATASET_PATH)
     train_dataset, val_dataset = random_split(dataset, [int(len(dataset) * config.train_size), len(dataset) - int(len(dataset) * config.train_size)])
-    train_dataloader = DataLoader(dataset=train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+    train_dataloader = DataLoader(dataset=train_dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
     val_dataloader = DataLoader(dataset=val_dataset, batch_size=int(len(dataset) * config.train_size), shuffle=False, num_workers=0)
     model = config.get_model_from_config().to('cuda')
     loss  = nn.BCEWithLogitsLoss()
