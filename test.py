@@ -58,28 +58,24 @@ from src.config.config import Config
 from pathlib import Path
 import ssqueezepy as sq
 import seaborn as sns
+import ptwt
 
-test_template = lst_template[0]
+test_template = torch.tensor(lst_template[0])
 test_img = img[100]
 
-Wx,scales = sq.cwt(test_template, ('morlet', {'mu': 0.5}), fs = 102.4 * 10**9, padtype='reflect', nv = 128, scales='log')
-print(Wx.shape)
-print(scales.shape)
-amplitude = np.abs(Wx)
-phase = np.angle(Wx)
-sq.visuals.imshow(amplitude,yticks=scales, cmap='gray', )
-sq.visuals.imshow(phase,yticks=scales, cmap='gray')
-plt.plot(test_template)
-plt.show()
+lenght = test_template.shape[-1]
 
-Wx,scales = sq.cwt(test_img, ('morlet', {'mu': 0.5}), fs = 102.4 * 10**9, padtype='reflect', nv = 128, scales='log')
-print(Wx.shape)
-print(scales.shape)
-amplitude = np.abs(Wx)
-phase = np.angle(Wx)
-sq.visuals.imshow(amplitude,yticks=scales, cmap='gray', )
-sq.visuals.imshow(phase,yticks=scales, cmap='gray')
-plt.plot(test_img)
+signal_3 = torch.cat([test_template, test_template, test_template], dim=-1)
+coef, freqs = ptwt.cwt(signal_3,np.arange(1,101, 1), wavelet='gaus2')
+print(coef.shape)
+coef = coef[:, test_template.shape[-1] : 2 * test_template.shape[-1] ]
+print(coef.shape)
+
+# coef = coef.permute(1, 0, 2)
+
+print(coef.shape)
+plt.imshow(coef)
+plt.plot(lst_template[0])
 plt.show()
 
 # Wx, scales = sq.cwt(test_template, 'morlet', fs = 102.4 * 10**9 )

@@ -20,5 +20,5 @@ backbone:
 
 embedding:
   wavelet: 'gaus1'
-  max_amp: 100
+  max_amp: 101
   step: 1

@@ -18,6 +18,8 @@ class TrainerNeuroStreak:
             cnt_batch = 0
             logger.info(f'Эпоха: {epoch + 1}')
             total_loss = 0
+            total_logits = torch.zeros(128)
+
             for batch in train_dataloader:
                 signal, template, target = batch
                 signal = signal.to(device)
@@ -26,14 +28,19 @@ class TrainerNeuroStreak:
 
                 res = model(signal = signal, template = template)
                 res_loss = loss(res, target)
-                total_loss += res_loss
+                with torch.no_grad():
+                    total_loss += res_loss
+                    total_logits = total_logits.to(device=res.device)
+                    total_logits += res.flatten(0)
                 res_loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
                 cnt_batch += 1
-                if cnt_batch % 100 == 0:
-                    logger.info(f'BCELoss: {total_loss / 100}', )
+                if cnt_batch % 250 == 0:
+                    logger.info(f'BCELoss: {total_loss / 250}, logits: {(total_logits / 250).mean()}, std: {total_logits.std()}', )
+
                     total_loss = 0
+                    total_logits = torch.zeros(128)
             if epoch % 5 == 0 or epoch == self.epochs - 1:
                 self.validation(val_dataloader, model)
         if scheduler is not None:
