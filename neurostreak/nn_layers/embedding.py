@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 import numpy as np
+import ssqueezepy as sq
 
 
 #Блок, отвечающий за спектральный анализ входных данных.
@@ -144,6 +145,33 @@ class WaveletAmplitudeEmbeddingBlock(nn.Module):
 
         if isinstance(signal, torch.Tensor):
             signal = signal.to('cpu').numpy()
+
+        signal_3 = np.concatenate([signal,signal,signal], axis=-1)
+        wdth = np.arange(1,self.max_amp, self.step)
+        coef, freqs = pywt.cwt(signal_3, wdth, wavelet= self.wavelet)
+        coef = coef[:,:,len(signal[0]):2 * len(signal[0]) ]
+        coef = coef.transpose(1,0,2)
+        return torch.from_numpy(coef).to('cuda', dtype = torch.float32)
+
+class WaveletEmbeddingBlockGPU(nn.Module):
+    def __init__(
+        self,
+        wavelet: str = 'gaus1',
+        max_amp: int = 100,
+        step: float = 1,
+    ):
+        super().__init__()
+        self.max_amp = max_amp
+        self.step = step
+        self.wavelet = wavelet
+
+    def forward(
+        self,
+        signal: np.ndarray | torch.Tensor,
+    ):
+
+        # if isinstance(signal, torch.Tensor):
+        #     signal = signal.to('cpu').numpy()
 
         signal_3 = np.concatenate([signal,signal,signal], axis=-1)
         wdth = np.arange(1,self.max_amp, self.step)

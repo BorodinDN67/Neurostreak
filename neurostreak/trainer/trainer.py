@@ -34,18 +34,21 @@ class TrainerNeuroStreak:
                 if cnt_batch % 100 == 0:
                     logger.info(f'BCELoss: {total_loss / 100}', )
                     total_loss = 0
-            if epoch % 5 == 0:
+            if epoch % 5 == 0 or epoch == self.epochs - 1:
                 self.validation(val_dataloader, model)
         if scheduler is not None:
             scheduler.step()
 
 
-    def save_model(self,model, epoch = None ):
+    def save_model(self,model, epoch = None, filename_user = None ):
         path = Path(self.checkpoint_path)
+        path.mkdir(parents=True, exist_ok=True)
         filename = f'model_checkpoin_epoch_{epoch}.pt' if epoch else f'model_checkpoin.pt'
+        if filename_user is not None:
+            filename = filename_user + '.pt'
         torch.save(model.state_dict(), path / filename)
 
-    def validation(self, val_loader, model):
+    def validation(self, val_loader, model, threshold = 0.5):
         labels = None
         outputs = None
         for signal, template, label in val_loader:
@@ -59,11 +62,15 @@ class TrainerNeuroStreak:
                 if labels is not None:
                     labels = torch.concat([labels, label.flatten(start_dim=0)], dim=0)
                     outputs = torch.concat([outputs, output.flatten(start_dim=0)], dim=0)
+                else:
+                    labels = label.flatten(start_dim=0)
+                    outputs = output.flatten(start_dim=0)
+        outputs = (outputs > threshold).float()
 
-        TP = sum(outputs[labels == 1] == 1)
-        TN = sum(outputs[labels == 0] == 0)
-        FP = sum(outputs[labels == 0] == 1)
-        FN = sum(outputs[labels == 1] == 0)
+        TP = torch.sum(outputs[labels == 1] == 1)
+        TN = torch.sum(outputs[labels == 0] == 0)
+        FP = torch.sum(outputs[labels == 0] == 1)
+        FN = torch.sum(outputs[labels == 1] == 0)
 
         accuracy = (TP + TN) / (TP + TN + FP + FN)
         recall = TP / (TP + FN)

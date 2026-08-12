@@ -14,16 +14,14 @@ from dataclasses import dataclass
 
 
 import pywt
+from torch.xpu import device
 
-
-
-
-template = np.load('data/clean_water_10m/template.npy')
+template = np.load('data/clean_water_20m/template.npy')
 # template = torch.Tensor(template)
 
 lst_template = [template for _ in range(2048)]
 lst_template = np.array(lst_template)
-img = np.array(Image.open('data/clean_water_10m/data/069.tif'))[:32]
+img = np.array(Image.open('data/clean_water_20m/data/069.tif'))
 
 
 
@@ -58,11 +56,59 @@ from neurostreak.model import NeuroStreakBackbone
 from neurostreak.model import NeuroStreakHead
 from src.config.config import Config
 from pathlib import Path
+import ssqueezepy as sq
+import seaborn as sns
 
+test_template = lst_template[0]
+test_img = img[100]
 
-config_path = Path('src/config/config.yaml')
-config = Config()
-config.load_model_config(config_path)
-model = config.get_model_from_config()
-print(model)
+Wx,scales = sq.cwt(test_template, ('morlet', {'mu': 0.5}), fs = 102.4 * 10**9, padtype='reflect', nv = 128, scales='log')
+print(Wx.shape)
+print(scales.shape)
+amplitude = np.abs(Wx)
+phase = np.angle(Wx)
+sq.visuals.imshow(amplitude,yticks=scales, cmap='gray', )
+sq.visuals.imshow(phase,yticks=scales, cmap='gray')
+plt.plot(test_template)
+plt.show()
+
+Wx,scales = sq.cwt(test_img, ('morlet', {'mu': 0.5}), fs = 102.4 * 10**9, padtype='reflect', nv = 128, scales='log')
+print(Wx.shape)
+print(scales.shape)
+amplitude = np.abs(Wx)
+phase = np.angle(Wx)
+sq.visuals.imshow(amplitude,yticks=scales, cmap='gray', )
+sq.visuals.imshow(phase,yticks=scales, cmap='gray')
+plt.plot(test_img)
+plt.show()
+
+# Wx, scales = sq.cwt(test_template, 'morlet', fs = 102.4 * 10**9 )
+# amplitude = np.abs(Wx)
+# phase = np.angle(Wx)
+# sq.visuals.imshow(amplitude,yticks=scales, cmap='gray', )
+# sq.visuals.imshow(phase,yticks=scales, cmap='gray', )
+#
+# Wx, scales = sq.cwt(test_template, 'hhhat', fs = 102.4 * 10**9 )
+# amplitude = np.abs(Wx)
+# phase = np.angle(Wx)
+# sq.visuals.imshow(amplitude,yticks=scales, cmap='gray', )
+# sq.visuals.imshow(phase,yticks=scales, cmap='gray')
+#
+# Wx, scales = sq.cwt(test_template, 'cmhat', fs = 102.4 * 10**9 )
+# amplitude = np.abs(Wx)
+# phase = np.angle(Wx)
+# sq.visuals.imshow(amplitude,yticks=scales, cmap='gray')
+# sq.visuals.imshow(phase,yticks=scales, cmap='gray')
+#
+# Wx, scales = sq.cwt(test_template, 'bump', fs = 102.4 * 10**9 )
+# amplitude = np.abs(Wx)
+# phase = np.angle(Wx)
+# sq.visuals.imshow(amplitude,yticks=scales, cmap='gray')
+# sq.visuals.imshow(phase,yticks=scales, cmap='gray')
+
+# config_path = Path('src/config/config.yaml')
+# config = Config()
+# config.load_model_config(config_path)
+# model = config.get_model_from_config()
+# print(model)
 

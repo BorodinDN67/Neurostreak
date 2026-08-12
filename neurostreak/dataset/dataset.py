@@ -12,7 +12,7 @@ class NeuroStreakDataset(Dataset):
         self.labels_path = self.root_dir / 'groundtruth.npy'
         self.template_path = self.root_dir / 'template.npy'
 
-        self.len = len(list(Path(root_dir).iterdir()))
+        self.len = len(list(Path(self.image_path).glob('*.tif')) )
         self.dim = 2048
         self.cashe = dict()
 
@@ -33,7 +33,7 @@ class NeuroStreakDataset(Dataset):
         img_n, row = idx // self.dim + 1, idx % self.dim
 
         template = np.load(self.template_path)
-        labels = np.load(self.labels_path)[row, img_n]
+        labels = np.load(self.labels_path)[row, img_n-1]
 
         img = self.image(str(img_n).zfill(3))
 

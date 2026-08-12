@@ -20,7 +20,7 @@ CURRENT_ROOT = Path(__file__).resolve()
 PROJECT_ROOT = CURRENT_ROOT.parent.parent
 CONFIG_PATH = PROJECT_ROOT /  Path('src/config/config.yaml')
 CONFIG_TRAIN = PROJECT_ROOT /  Path('src/config/config_train.yaml')
-DATASET_PATH = PROJECT_ROOT / Path('data/clean_water_20m')
+DATASET_PATH = PROJECT_ROOT / Path('data/clean_water_10m')
 
 
 
@@ -32,8 +32,10 @@ def main():
     dataset = NeuroStreakDataset(DATASET_PATH)
     train_dataset, val_dataset = random_split(dataset, [int(len(dataset) * config.train_size), len(dataset) - int(len(dataset) * config.train_size)])
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
-    val_dataloader = DataLoader(dataset=val_dataset, batch_size=32, shuffle=False, num_workers=0)
+    val_dataloader = DataLoader(dataset=val_dataset, batch_size=int(len(dataset) * config.train_size), shuffle=False, num_workers=0)
+    weights = torch.load(config.weights)
     model = config.get_model_from_config().to('cuda')
+    model.load_state_dict(weights)
 
     pos_weights = torch.tensor(
         [35.0],
@@ -48,7 +50,7 @@ def main():
 
     model.train()
     trainer.fit(model,train_dataloader,val_dataloader, loss, optimizer, scheduler)
-    trainer.save_model(model, epoch = config.epochs)
+    trainer.save_model(model, epoch = config.epochs,filename= getattr(config, 'filename', None))
     logger.success(f'Обучение закончено и веса сохранены в {config.checkpoint_path}')
 if __name__ == '__main__':
     main()
