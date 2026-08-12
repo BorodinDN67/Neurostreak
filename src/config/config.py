@@ -2,7 +2,7 @@ import pathlib
 import yaml
 
 from neurostreak.model import NeurostreakArch
-from neurostreak.model import NeuroStreakHead, NeuroStreakBackbone, NeuroStreakEmbedding
+from neurostreak.model import NeuroStreakHead, NeuroStreakBackbone, NeuroStreakEmbedding, NeuroStreakEmbeddingGPU
 from torch.utils.data import DataLoader
 
 
@@ -55,13 +55,17 @@ class Config:
 
 
 
-        embedding = NeuroStreakEmbedding(
+        embedding = NeuroStreakEmbeddingGPU(
             max_amp= self.embedding['max_amp'],
             step = self.embedding['step'],
             wavelet = self.embedding['wavelet'],
         )
-
-
+        # embedding = NeuroStreakEmbeddingGPU(
+        #     wavelet= self.embedding['wavelet'],
+        #     mu = self.embedding['mu'],
+        #     fs = float(self.embedding['fs']),
+        #     nv = self.embedding['nv']
+        # )
 
         model = NeurostreakArch(head = head,backbone =  backbone,embedding =  embedding,config =  self.config)
         return model

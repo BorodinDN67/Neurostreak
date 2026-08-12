@@ -39,4 +39,4 @@ class NeuroStreakDataset(Dataset):
 
         signal = img[row]
 
-        return torch.tensor(signal), torch.tensor(template) , torch.tensor(labels).to(dtype=torch.float32)
+        return torch.tensor(signal).to(dtype=torch.float32), torch.tensor(template).to(dtype=torch.float32) , torch.tensor(labels).to(dtype=torch.float32)

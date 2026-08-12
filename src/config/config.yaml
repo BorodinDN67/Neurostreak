@@ -11,7 +11,14 @@ backbone:
   depth: 8
 
 
+#embedding:
+#  wavelet: 'morlet'
+#  mu: 0.5
+#  fs: 102e9
+#  nv: 128
+
+
 embedding:
-  max_amp: 50
-  step: 0.5
-  wavelet: 'gaus2'
+  wavelet: 'gaus1'
+  max_amp: 100
+  step: 1

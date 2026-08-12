@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 import numpy as np
-import ssqueezepy as sq
+import ptwt
 
 
 #Блок, отвечающий за спектральный анализ входных данных.
@@ -132,7 +132,7 @@ class WaveletAmplitudeEmbeddingBlock(nn.Module):
         max_amp: int = 100,
         step: float = 1,
     ):
-        super(WaveletAmplitudeEmbeddingBlock,self).__init__()
+        super().__init__()
         self.max_amp = max_amp
         self.step = step
         self.wavelet = wavelet
@@ -164,21 +164,19 @@ class WaveletEmbeddingBlockGPU(nn.Module):
         self.max_amp = max_amp
         self.step = step
         self.wavelet = wavelet
+        self.scales = np.arange(1,self.max_amp, self.step)
 
     def forward(
         self,
         signal: np.ndarray | torch.Tensor,
     ):
+        lenght = signal.shape[-1]
 
-        # if isinstance(signal, torch.Tensor):
-        #     signal = signal.to('cpu').numpy()
-
-        signal_3 = np.concatenate([signal,signal,signal], axis=-1)
-        wdth = np.arange(1,self.max_amp, self.step)
-        coef, freqs = pywt.cwt(signal_3, wdth, wavelet= self.wavelet)
+        signal_3 = torch.cat([signal,signal,signal], dim=-1)
+        coef, freqs = ptwt.cwt(signal_3, self.scales, wavelet= self.wavelet)
         coef = coef[:,:,len(signal[0]):2 * len(signal[0]) ]
-        coef = coef.transpose(1,0,2)
-        return torch.from_numpy(coef).to('cuda', dtype = torch.float32)
+        coef = coef.permute(1,0,2)
+        return coef.to(dtype=signal.dtype, device=signal.device)
 
 class DiffusionEmbedding(nn.Module):
 
