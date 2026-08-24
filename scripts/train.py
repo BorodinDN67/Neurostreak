@@ -5,7 +5,7 @@ import torch.optim as optim
 
 from torch import nn
 from torch.cuda import device
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 from pathlib import Path
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import random_split
@@ -20,7 +20,7 @@ CURRENT_ROOT = Path(__file__).resolve()
 PROJECT_ROOT = CURRENT_ROOT.parent.parent
 CONFIG_PATH = PROJECT_ROOT /  Path('src/config/config.yaml')
 CONFIG_TRAIN = PROJECT_ROOT /  Path('src/config/config_train.yaml')
-DATASET_PATH = PROJECT_ROOT / Path('data/clean_water_20m')
+DATASET_PATHS =[ PROJECT_ROOT / Path('data/clean_water_20m')]
 
 
 
@@ -28,15 +28,20 @@ def main():
     config = Config()
     config.load_model_config(CONFIG_PATH)
     config.load_train_config(CONFIG_TRAIN)
+    #Получаем датасет ИЛИ, если несколько датасетов, склеиваем их в один
+    if len(DATASET_PATHS) == 1:
+        dataset = NeuroStreakDataset(DATASET_PATHS[0])
+    else:
+        datasets = [NeuroStreakDataset(dataset_path) for dataset_path in DATASET_PATHS]
+        dataset = ConcatDataset(datasets)
 
-    dataset = NeuroStreakDataset(DATASET_PATH)
-    train_dataset, val_dataset = random_split(dataset, [int(len(dataset) * config.train_size), len(dataset) - int(len(dataset) * config.train_size)])
+    train_dataset, val_dataset = random_split(dataset, [int(len(dataset) * config.train_size), len(dataset) - int(len(dataset) * config.train_size)], generator=torch.Generator().manual_seed(42))
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=128, shuffle=True, num_workers=4, pin_memory=True)
     val_dataloader = DataLoader(dataset=val_dataset, batch_size=32, shuffle=False, num_workers=0)
     model = config.get_model_from_config().to('cuda')
 
     pos_weights = torch.tensor(
-        [35.0],
+        [15.0],
         dtype=torch.float32,
         device='cuda'
     )
