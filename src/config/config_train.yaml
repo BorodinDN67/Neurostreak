@@ -1,14 +1,16 @@
 optimizer:
-  lr: 1e-3
-  epochs: 10
+  lr: 1e-5
+  epochs: 5
 scheduler:
-  gamma: 0.5
-  step_size: 5
+  gamma: 0.2
+  step_size: 1
 paths:
-  checkpoint_path: 'save/10_08_26_neurostreak'
+  checkpoint_path: 'save/25_08_26_neurostreak'
+  weights: 'save/25_08_26_neurostreak/model_checkpoin.pt'
+  filename: 'neurostreak_0_0_1_20m'
 dataloader:
-  batch_size: 32
+  batch_size: 128
   shuffle: True
 process:
-  train_size: 0.8
-  val_size: 0.2
+  train_size: 0.85
+  val_size: 0.15

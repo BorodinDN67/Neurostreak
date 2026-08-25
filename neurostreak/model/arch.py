@@ -27,7 +27,7 @@ class NeurostreakArch(nn.Module):
 
 class StreakNetArch(nn.Module):
     def __init__(self, embedding=None, backbone=None, head=None):
-        super(StreakNetArch, self).__init__()
+        super().__init__()
         if embedding is None:
             embedding = StreakNetEmbedding()
         if backbone is None:

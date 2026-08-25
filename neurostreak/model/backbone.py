@@ -12,37 +12,16 @@ from ..nn_layers import WaveletAttentionBlock, DBCAttentionLayer, SpectralAttent
 class NeuroStreakBackbone(nn.Module):
     def __init__(
             self,
-            hidden_2d_dim_1: int,
-            hidden_2d_dim_2: int,
-            kernel_size: tuple[int, int],
-            padding: tuple[int, int],
+            hidden_dim: int,
             num_heads: int,
-            embed_dim: int,
             depth: int,
-            max_pool_kernel_size_1: tuple[int, int],
-            max_pool_stride_1: tuple[int, int],
-            max_pool_kernel_size_2: tuple[int, int],
-            max_pool_stride_2: tuple[int, int],
-            max_pool_kernel_size_3: tuple[int, int],
-            max_pool_stride_3: tuple[int, int],
-            num_scales: int
+
     ):
         super().__init__()
         self.wavelet_attention_block = WaveletAttentionBlock(
-            hidden_2d_dim_1,
-            hidden_2d_dim_2,
-            kernel_size,
-            padding,
+            hidden_dim,
             num_heads,
-            embed_dim,
             depth,
-            max_pool_kernel_size_1,
-            max_pool_stride_1,
-            max_pool_kernel_size_2,
-            max_pool_stride_2,
-            max_pool_kernel_size_3,
-            max_pool_stride_3,
-            num_scales
         )
 
         self.signal_attention_block = SpectralAttentionBlock(

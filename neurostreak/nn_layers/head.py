@@ -13,7 +13,7 @@ class WaveletHead(nn.Module):
             nn.LayerNorm(wavelet_dim),
             nn.Linear(wavelet_dim, embed_dim),
         )
-
+        self.layer_norm = nn.LayerNorm(embed_dim)
         self.adaptive_pool = AdaptivePooling(embed_dim, hidden_dim=128)
 
     def forward(self, x):
@@ -25,7 +25,8 @@ class WaveletHead(nn.Module):
         # print(weights.shape)
         # print('scores WaveletHead')
         # print(scores.shape)
-        return (weights.unsqueeze(-1)* projection).sum(dim=-2)
+        pre_out = (weights.unsqueeze(-1)* projection).sum(dim=-2)
+        return self.layer_norm(pre_out )
 
 
 class SpectralHead(nn.Module):
@@ -38,8 +39,9 @@ class SpectralHead(nn.Module):
         self.projector = nn.Sequential(
             nn.LayerNorm(spectral_dim),
             nn.Linear(spectral_dim, embed_dim),
+            nn.LayerNorm(embed_dim),
         )
-
+        self.layer_norm = nn.LayerNorm(embed_dim)
         self.adaptive_pool = AdaptivePooling(embed_dim, hidden_dim=128)
 
     def forward(self, x):
@@ -51,7 +53,8 @@ class SpectralHead(nn.Module):
         # print(weights.shape)
         # print('scores SpectralHead')
         # print(scores.shape)
-        return (weights.unsqueeze(-1)* projection).sum(dim=-2)
+        pre_out = (weights.unsqueeze(-1)* projection).sum(dim=-2)
+        return self.layer_norm(pre_out )
 
 
 
