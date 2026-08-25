@@ -20,7 +20,7 @@ CURRENT_ROOT = Path(__file__).resolve()
 PROJECT_ROOT = CURRENT_ROOT.parent.parent
 CONFIG_PATH = PROJECT_ROOT /  Path('src/config/config.yaml')
 CONFIG_TRAIN = PROJECT_ROOT /  Path('src/config/config_train.yaml')
-DATASET_PATH = PROJECT_ROOT / Path('data/clean_water_10m')
+DATASET_PATH = PROJECT_ROOT / Path('data/clean_water_20m')
 
 
 
@@ -38,7 +38,7 @@ def main():
     model.load_state_dict(weights)
 
     pos_weights = torch.tensor(
-        [35.0],
+        [15.0],
         dtype=torch.float32,
         device='cuda'
     )

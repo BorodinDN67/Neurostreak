@@ -48,9 +48,9 @@ class TrainerNeuroStreak:
     def save_model(self,model, epoch = None, filename_user = None ):
         path = Path(self.checkpoint_path)
         path.mkdir(parents=True, exist_ok=True)
-        filename = f'model_checkpoin_epoch_{epoch}.pt' if epoch else f'model_checkpoin.pt'
+        filename = f'model_checkpoin_epoch_{epoch}.pt' if epoch is not None else f'model_checkpoin.pt'
         if filename_user is not None:
-            filename = filename_user + '.pt'
+            filename = filename_user +  f'_{0 if not epoch else epoch}_' + '.pt'
         torch.save(model.state_dict(), path / filename)
 
     def validation(self, val_loader, model, threshold=0.5):

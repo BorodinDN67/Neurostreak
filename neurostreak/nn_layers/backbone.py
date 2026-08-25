@@ -17,22 +17,18 @@ class WaveletAttentionBlock(nn.Module):
         super().__init__()
 
         self.convolution = nn.Sequential(
-            nn.Conv2d(in_channels = 1, out_channels = hidden_dim // 4, kernel_size = (3, 7), padding=(1,3), stride = (3,7)),
+            nn.Conv2d(in_channels = 1, out_channels = hidden_dim // 4, kernel_size = (1, 7), padding=(0,3), stride = (1,3)),
             nn.ReLU(inplace = True),
             nn.MaxPool2d(kernel_size = 2, stride = 2),
 
-            nn.Conv2d(in_channels = hidden_dim// 4, out_channels = hidden_dim // 2, kernel_size = (3, 5), padding=(1,2), stride = (3,5)),
+            nn.Conv2d(in_channels = hidden_dim// 4, out_channels = hidden_dim // 2, kernel_size = (1, 3), padding=(0,1), stride = (1,2)),
             nn.ReLU(inplace = True),
-            nn.MaxPool2d(kernel_size = 2, stride = 2),
-
-            nn.Conv2d(in_channels=hidden_dim // 2, out_channels=hidden_dim, kernel_size= (3,3), padding=(1,1), stride = (1,1)),
-            nn.ReLU(inplace = True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.MaxPool2d(kernel_size = (2,1), stride = 1),
         )
         self.embedding_projection = nn.Linear(in_features = 1, out_features = 1)
 
         self.cross_attention = nn.ModuleList([
-            CrossAttention(num_heads=num_heads, embed_dim = hidden_dim)
+            CrossAttention(num_heads=num_heads, embed_dim = 784)
         for _ in range(depth)
         ])
 
@@ -40,8 +36,8 @@ class WaveletAttentionBlock(nn.Module):
 
         template_conv = self.convolution(embedding_template)
         signal_conv = self.convolution(embedding_signal)
-        tmp = torch.flatten(template_conv, start_dim = -2).transpose(1, 2)
-        signal = torch.flatten(signal_conv, start_dim = -2).transpose(1, 2)
+        tmp = torch.flatten(template_conv, start_dim = -3, end_dim=-2).transpose(1, 2)
+        signal = torch.flatten(signal_conv, start_dim = -3, end_dim=-2).transpose(1, 2)
         # print(signal_conv.shape)
         # print(signal.shape)
 

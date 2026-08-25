@@ -2,7 +2,7 @@ name: 'NeuroStreak_0.0.1'
 
 head:
   spectral_dim: 64
-  wavelet_dim: 32
+  wavelet_dim: 784
   embedding_dim: 128
 
 backbone:

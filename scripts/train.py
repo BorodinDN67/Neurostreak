@@ -31,6 +31,7 @@ def main():
     #Получаем датасет ИЛИ, если несколько датасетов, склеиваем их в один
     if len(DATASET_PATHS) == 1:
         dataset = NeuroStreakDataset(DATASET_PATHS[0])
+
     else:
         datasets = [NeuroStreakDataset(dataset_path) for dataset_path in DATASET_PATHS]
         dataset = ConcatDataset(datasets)
