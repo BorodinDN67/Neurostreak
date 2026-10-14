@@ -33,7 +33,8 @@ def main():
     train_dataset, val_dataset = random_split(dataset, [int(len(dataset) * config.train_size), len(dataset) - int(len(dataset) * config.train_size)])
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
     val_dataloader = DataLoader(dataset=val_dataset, batch_size=int(len(dataset) * config.train_size), shuffle=False, num_workers=0)
-    weights = torch.load(config.weights)
+    checkpoint = torch.load(config.checkpoint)
+    weights = checkpoint['state_dict']
     model = config.get_model_from_config().to('cuda')
     model.load_state_dict(weights)
 
@@ -50,7 +51,7 @@ def main():
 
     model.train()
     trainer.fit(model,train_dataloader,val_dataloader, loss, optimizer, scheduler)
-    trainer.save_model(model, epoch = config.epochs,filename= getattr(config, 'filename', None))
+    trainer.save_checkpoint(model, epoch = config.epochs, filename= getattr(config, 'filename', None), config_trainer= getattr(config, 'train_config', None))
     logger.success(f'Обучение закончено и веса сохранены в {config.checkpoint_path}')
 if __name__ == '__main__':
     main()

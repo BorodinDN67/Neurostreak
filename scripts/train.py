@@ -54,7 +54,7 @@ def main():
 
     model.train()
     trainer.fit(model,train_dataloader,val_dataloader, loss, optimizer, scheduler)
-    trainer.save_model(model, epoch = config.epochs)
+    trainer.save_checkpoint(model, epoch = config.epochs, config_trainer= getattr(config, 'train_config'))
     logger.success(f'Обучение закончено и веса сохранены в {config.checkpoint_path}')
 if __name__ == '__main__':
     main()

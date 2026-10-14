@@ -76,7 +76,7 @@ class Config:
         return scheduler(optimizer, gamma = float(self.gamma), step_size = int(self.step_size))
 
     def get_trainer_from_config(self, trainer):
-        return trainer(self.epochs,self.checkpoint_path )
+        return trainer(self.epochs)
 
     def get_dataloaders_from_config(self, dataset):
         return DataLoader(
@@ -84,3 +84,14 @@ class Config:
             batch_size = self.batch_size,
             shuffle = self.shuffle,
         )
+
+def flatten_dict(d, parent_key="", sep="."):
+    items = {}
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.update(flatten_dict(v, new_key, sep=sep))
+        else:
+            items[new_key] = v
+    return items
+
