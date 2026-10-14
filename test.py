@@ -14,16 +14,14 @@ from dataclasses import dataclass
 
 
 import pywt
+from torch.xpu import device
 
-
-
-
-template = np.load('data/clean_water_10m/template.npy')
+template = np.load('data/clean_water_20m/template.npy')
 # template = torch.Tensor(template)
 
 lst_template = [template for _ in range(2048)]
 lst_template = np.array(lst_template)
-img = np.array(Image.open('data/clean_water_10m/data/069.tif'))[:32]
+img = np.array(Image.open('data/clean_water_20m/data/069.tif'))
 
 
 
@@ -58,11 +56,28 @@ from neurostreak.model import NeuroStreakBackbone
 from neurostreak.model import NeuroStreakHead
 from src.config.config import Config
 from pathlib import Path
+import ssqueezepy as sq
+import seaborn as sns
+import ptwt
 
+test_template = torch.tensor(lst_template[0])
+test_img = img[100]
 
-config_path = Path('src/config/config.yaml')
-config = Config()
-config.load_model_config(config_path)
-model = config.get_model_from_config()
-print(model)
+lenght = test_template.shape[-1]
 
+signal_3 = torch.cat([test_template, test_template, test_template], dim=-1)
+coef, freqs = ptwt.cwt(signal_3,np.arange(1,101, 1), wavelet='gaus2')
+print(coef.shape)
+coef = coef[:, test_template.shape[-1] : 2 * test_template.shape[-1] ]
+print(coef.shape)
+
+# coef = coef.permute(1, 0, 2)
+
+print(coef.shape)
+plt.imshow(coef)
+plt.plot(lst_template[0])
+plt.show()
+
+target = np.load('data/clean_water_20m/groundtruth.npy')
+print(2048 * 267 / np.sum(target) )
+print(np.sum(target).shape)

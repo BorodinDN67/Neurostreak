@@ -1,14 +1,14 @@
+meta:
+  exp_name: 'FFT&CWT'
 optimizer:
-  lr: 1e-3
-  epochs: 10
+  lr: 1e-4
+  epochs: 2
 scheduler:
-  gamma: 0.5
-  step_size: 5
-paths:
-  checkpoint_path: 'save/10_08_26_neurostreak'
+  gamma: 0.1
+  step_size: 1
 dataloader:
-  batch_size: 32
+  batch_size: 128
   shuffle: True
 process:
-  train_size: 0.8
-  val_size: 0.2
+  train_size: 0.85
+  val_size: 0.15

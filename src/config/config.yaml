@@ -2,26 +2,23 @@ name: 'NeuroStreak_0.0.1'
 
 head:
   spectral_dim: 64
-  wavelet_dim: 512
+  wavelet_dim: 784
   embedding_dim: 128
 
 backbone:
-  hidden_2d_dim_1: 64
-  hidden_2d_dim_2: 128
-  kernel_size: [3,3]
-  padding: [1,1]
+  hidden_dim: 32
   num_heads: 8
-  embed_dim: 512
   depth: 8
-  max_pool_kernel_size_1: [2,2]
-  max_pool_stride_1: [2,2]
-  max_pool_kernel_size_2: [2,2]
-  max_pool_stride_2: [2,2]
-  max_pool_kernel_size_3: [2,2]
-  max_pool_stride_3: [2,2]
-  num_scales: 64
+
+
+#embedding:
+#  wavelet: 'morlet'
+#  mu: 0.5
+#  fs: 102e9
+#  nv: 128
+
 
 embedding:
-  max_amp: 50
-  step: 0.5
-  wavelet: 'gaus2'
+  wavelet: 'gaus1'
+  max_amp: 101
+  step: 1
