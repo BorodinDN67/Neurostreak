@@ -13,12 +13,15 @@ class TrainerNeuroStreak:
         epochs,
     ):
         self.epochs = epochs
+        self.checkpoint_path = 'checkpoints_lol'
 
     def fit(self,model, train_dataloader, val_dataloader, loss, optimizer, scheduler=None):
         logger.info(f"Начали обучение на {self.epochs} эпохах")
         device = next(model.parameters()).device
         validation_results = []
         step_for_logs = 0
+        debug_stats = []
+
         for epoch in range(self.epochs):
             model.train()
             cnt_batch = 0
@@ -32,20 +35,132 @@ class TrainerNeuroStreak:
                 target = target.to(device).unsqueeze(-1)
 
                 res = model(signal = signal, template = template)
+
                 res_loss = loss(res, target)
-                with torch.no_grad():
-                    total_loss += res_loss.item()
+
+                # Проверка численной стабильности
+                if not torch.isfinite(res).all():
+                    raise RuntimeError(f"NaN/Inf в выходе модели, batch={cnt_batch}")
+
+                if not torch.isfinite(res_loss):
+                    raise RuntimeError(f"NaN/Inf в loss, batch={cnt_batch}")
+
+                total_loss += res_loss.item()
+
                 res_loss.backward()
+
+                # Проверяем градиенты, не изменяя их
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(),
+                    max_norm=float("inf"),
+                    error_if_nonfinite=True
+                )
+
+                # Снимок весов в начале интервала
+                if not debug_stats:
+                    weights_before = [
+                        p.detach().cpu().clone()
+                        for p in model.parameters() if p.requires_grad
+                    ]
+
+                # Собираем статистики текущего батча
+                with torch.no_grad():
+                    probs = torch.sigmoid(res.detach())
+                    pos = target == 1
+                    neg = target == 0
+
+                    debug_stats.append({
+                        "loss": res_loss.item(),
+                        "grad": grad_norm.item(),
+                        "n": probs.numel(),
+                        "prob_sum": probs.sum().item(),
+                        "prob_sq_sum": probs.square().sum().item(),
+                        "pos_sum": probs[pos].sum().item(),
+                        "neg_sum": probs[neg].sum().item(),
+                        "n_pos": pos.sum().item(),
+                        "n_neg": neg.sum().item(),
+                    })
+
                 optimizer.step()
                 optimizer.zero_grad()
+
                 cnt_batch += 1
                 step_for_logs += 1
-                if cnt_batch % 250 == 0:
-                    avg_loss = total_loss / 250
-                    logger.info(f'BCELoss: {avg_loss}', )
-                    mlflow.log_metric("train_loss", avg_loss, step=step_for_logs)
-                    total_loss = 0
-            metrics = self.validation(model, val_dataloader, threshold=0.5, epoch=epoch)
+
+                # Агрегирование и логирование каждые 25 батчей
+                if len(debug_stats) == 25:
+                    n = sum(s["n"] for s in debug_stats)
+                    n_pos = sum(s["n_pos"] for s in debug_stats)
+                    n_neg = sum(s["n_neg"] for s in debug_stats)
+
+                    avg_loss = np.mean([s["loss"] for s in debug_stats])
+                    avg_grad = np.mean([s["grad"] for s in debug_stats])
+                    max_grad = max(s["grad"] for s in debug_stats)
+
+                    prob_mean = sum(s["prob_sum"] for s in debug_stats) / n
+                    prob_sq_mean = sum(s["prob_sq_sum"] for s in debug_stats) / n
+                    prob_std = max(prob_sq_mean - prob_mean ** 2, 0.0) ** 0.5
+
+                    pos_prob = (
+                        sum(s["pos_sum"] for s in debug_stats) / n_pos
+                        if n_pos else None
+                    )
+                    neg_prob = (
+                        sum(s["neg_sum"] for s in debug_stats) / n_neg
+                        if n_neg else None
+                    )
+
+                    # Изменение всех обучаемых параметров за 25 шагов
+                    with torch.no_grad():
+                        params = [p for p in model.parameters() if p.requires_grad]
+
+                        delta_sq = sum(
+                            (p.detach().cpu() - w).square().sum().item()
+                            for p, w in zip(params, weights_before)
+                        )
+                        norm_sq = sum(w.square().sum().item() for w in weights_before)
+
+                    weight_delta = delta_sq ** 0.5
+                    weight_delta_rel = weight_delta / max(norm_sq ** 0.5, 1e-12)
+
+                    metrics = {
+                        "train/loss": float(avg_loss),
+                        "train/grad_norm_mean": float(avg_grad),
+                        "train/grad_norm_max": float(max_grad),
+                        "train/weight_delta": weight_delta,
+                        "train/weight_delta_rel": weight_delta_rel,
+                        "train/prob_mean": prob_mean,
+                        "train/prob_std": prob_std,
+                        "train/positive_ratio": n_pos / n,
+                        "train/lr": optimizer.param_groups[0]["lr"],
+                    }
+
+                    if pos_prob is not None:
+                        metrics["train/positive_prob"] = pos_prob
+                    if neg_prob is not None:
+                        metrics["train/negative_prob"] = neg_prob
+
+                    mlflow.log_metrics(metrics, step=step_for_logs)
+
+                    logger.info(
+                        f"\n[DEBUG] Batch {cnt_batch}"
+                        f"\n  Loss:           {avg_loss:.6f}"
+                        f"\n  Grad mean/max:  {avg_grad:.6f} / {max_grad:.6f}"
+                        f"\n  Weight delta:   {weight_delta:.8f}"
+                        f"\n  Relative delta: {weight_delta_rel:.8f}"
+                        f"\n  Prob mean/std:  {prob_mean:.5f} / {prob_std:.5f}"
+                        f"\n  Positive prob:  {pos_prob if pos_prob is not None else 'N/A'}"
+                        f"\n  Negative prob:  {neg_prob if neg_prob is not None else 'N/A'}"
+                        f"\n  Positive ratio: {n_pos / n:.4f}"
+                        f"\n  LR:             {metrics['train/lr']:.8f}"
+                    )
+
+                    debug_stats.clear()
+
+                step_for_logs += 1
+
+
+            metrics = self.validation(model = model,val_loader = val_dataloader, threshold=0.5, epoch=epoch)
             mlflow.log_param("threshold", metrics['threshold'])
             mlflow.log_metrics(
                 {k: v for k, v in metrics.items() if k not in ('epoch', 'threshold')},
@@ -54,9 +169,9 @@ class TrainerNeuroStreak:
             validation_results.append(metrics)
             self.save_checkpoint(model, epoch = epoch, validation_result = validation_results)
             logger.success(f'Обучение закончено и веса сохранены в артефактах')
-
-        if scheduler is not None:
-            scheduler.step()
+            debug_stats.clear()
+            if scheduler is not None:
+                scheduler.step()
 
     def save_checkpoint(self, model, optimizer=None, scheduler=None,epoch=None, filename_user=None, validation_result=None, config_trainer=None):
         # --- локальный полный чекпоинт ---
@@ -82,7 +197,7 @@ class TrainerNeuroStreak:
 
         # --- в MLflow ---
         mlflow.log_artifact(str(full_path), artifact_path="checkpoints")
-        mlflow.pytorch.log_model(model, artifact_path="model")
+        mlflow.pytorch.log_model(model, artifact_path="model", serialization_format = 'pickle' )
 
 
     def validation(self, val_loader, model, threshold=0.5, epoch = None):

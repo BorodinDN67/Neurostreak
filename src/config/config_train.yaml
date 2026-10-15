@@ -1,7 +1,7 @@
 meta:
   exp_name: 'FFT&CWT'
 optimizer:
-  lr: 1e-4
+  lr: 1e-2
   epochs: 2
 scheduler:
   gamma: 0.1

@@ -12,9 +12,6 @@ from loguru import logger
 from ..nn_layers import FDEmbeddingBlock, WaveletAmplitudeEmbeddingBlock, WaveletEmbeddingBlockGPU
 
 
-
-
-
 class NeuroStreakEmbedding(nn.Module):
     def __init__(
             self,

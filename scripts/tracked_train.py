@@ -1,3 +1,5 @@
+import random
+
 import mlflow
 import mlflow.pytorch
 from src.config.config import Config, flatten_dict
@@ -7,13 +9,12 @@ from pathlib import Path
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import random_split
 from loguru import logger
-
 from src.config.config import Config
 from neurostreak.trainer import TrainerNeuroStreak
 from neurostreak.dataset import NeuroStreakDataset
 import torch
 import torch.optim as optim
-
+import numpy as np
 from torch import nn
 
 CURRENT_ROOT = Path(__file__).resolve()
@@ -24,6 +25,11 @@ DATASET_PATHS =[ PROJECT_ROOT / Path('data/clean_water_20m')]
 
 mlflow.set_tracking_uri("sqlite:///C:/Users/supervisor.LTCPC-280426-01/PycharmProjects/NeuroStreak/mlflow.db")
 
+rndm = 8810002
+random.seed(rndm)
+torch.manual_seed(rndm)
+np.random.seed(rndm)
+torch.cuda.manual_seed_all(rndm)
 
 def tracked_train():
     config = Config()
@@ -42,7 +48,7 @@ def tracked_train():
         model = config.get_model_from_config().to('cuda')
         dataset = NeuroStreakDataset(DATASET_PATHS[0])
         pos_weights = torch.tensor(
-            [15.0],
+            [7.0],
             dtype=torch.float32,
             device='cuda'
         )
@@ -69,7 +75,8 @@ def tracked_train():
         mlflow.pytorch.log_model(
             model,
             "model",
-            metadata={"architecture_summary": str(model)}
+            metadata={"architecture_summary": str(model)},
+            serialization_format='pickle'
         )
 
 
