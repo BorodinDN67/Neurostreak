@@ -67,13 +67,10 @@ class NeuroStreakConcatDataset(Dataset):
 
         self.datasets = []
         for root_dir in self.root_dir:
-            self.datasets.append(NeuroStreakDataset(root_dir, groundtruth))
+            self.datasets.append(NeuroStreakDataset(root_dir = root_dir,groundtruth = groundtruth))
 
-        self.len = sum([dataset.__len__ for dataset in self.datasets])
-
-        self.lens = [dataset.__len__ for dataset in self.datasets]
-
-
+        self.lens = [len(dataset) for dataset in self.datasets]
+        self.len = sum(self.lens)
 
     def __len__(self):
         return self.len
@@ -82,7 +79,7 @@ class NeuroStreakConcatDataset(Dataset):
 
         number_dataset = 0
         for i, l in enumerate(self.lens):
-            if idx < l:
+            if idx >= l:
                 idx -= l
             else:
                 number_dataset = i

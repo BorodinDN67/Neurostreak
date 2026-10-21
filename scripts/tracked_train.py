@@ -48,7 +48,7 @@ def tracked_train():
         model = config.get_model_from_config().to('cuda')
         dataset = NeuroStreakDataset(DATASET_PATHS[0])
         pos_weights = torch.tensor(
-            [7.0],
+            [15.0],
             dtype=torch.float32,
             device='cuda'
         )
@@ -74,7 +74,7 @@ def tracked_train():
 
         mlflow.pytorch.log_model(
             model,
-            "model",
+            f"model_{config.exp_name}",
             metadata={"architecture_summary": str(model)},
             serialization_format='pickle'
         )

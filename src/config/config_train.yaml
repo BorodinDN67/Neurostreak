@@ -1,10 +1,10 @@
 meta:
-  exp_name: 'FFT&CWT'
+  exp_name: 'FFT&CWT_finetuning_3_to_5_epoch_0_2'
 optimizer:
-  lr: 1e-2
+  lr: 1e-4
   epochs: 2
 scheduler:
-  gamma: 0.1
+  gamma: 0.7
   step_size: 1
 dataloader:
   batch_size: 128
@@ -12,3 +12,5 @@ dataloader:
 process:
   train_size: 0.85
   val_size: 0.15
+checkpoint:
+  model_id: m-ba07356dbab44298a335f1dbfd2662ec

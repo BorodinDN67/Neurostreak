@@ -197,7 +197,7 @@ class TrainerNeuroStreak:
 
         # --- в MLflow ---
         mlflow.log_artifact(str(full_path), artifact_path="checkpoints")
-        mlflow.pytorch.log_model(model, artifact_path="model", serialization_format = 'pickle' )
+        mlflow.pytorch.log_model(model, artifact_path=f"model_{epoch}", serialization_format = 'pickle' )
 
 
     def validation(self, val_loader, model, threshold=0.5, epoch = None):

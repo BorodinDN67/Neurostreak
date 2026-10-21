@@ -1,5 +1,6 @@
 import pathlib
 import yaml
+import mlflow
 
 from neurostreak.model import NeurostreakArch
 from neurostreak.model import NeuroStreakHead, NeuroStreakBackbone, NeuroStreakEmbedding, NeuroStreakEmbeddingGPU
@@ -68,6 +69,11 @@ class Config:
         # )
 
         model = NeurostreakArch(head = head,backbone =  backbone,embedding =  embedding,config =  self.config)
+        return model
+    def get_model_from_checkpoint(self, path: str | pathlib.Path):
+        model_id = self.model_id
+        path_to_model = path / 'models' / model_id / 'artifacts'
+        model = mlflow.pytorch.load_model(path_to_model)
         return model
     def get_optimizer_from_config(self, optimizer, model):
         return optimizer(model.parameters(), lr = float(self.lr))
