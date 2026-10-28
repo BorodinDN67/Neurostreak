@@ -70,19 +70,35 @@ class Config:
 
         model = NeurostreakArch(head = head,backbone =  backbone,embedding =  embedding,config =  self.config)
         return model
-    def get_model_from_checkpoint(self, path: str | pathlib.Path):
-        model_id = self.model_id
-        path_to_model = path / 'models' / model_id / 'artifacts'
-        model = mlflow.pytorch.load_model(path_to_model)
-        return model
+    def get_chechpoint(
+        self,
+        path: str | pathlib.Path,
+        model,
+        optimizer,
+        scheduler = None,
+    ):
+        epoch = self.epoch
+        run_id = self.run_id
+
+        mlflow_path = path / run_id / 'checkpoints' / f'epoch_{epoch}'
+        checkpoint = mlflow.pytorch.load_state_dict(mlflow_path)
+        model.load_state_dict(checkpoint['model'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+
+        start_epoch = checkpoint['epoch'] + 1
+        global_step = checkpoint['global_step'] + 1
+        if scheduler is not None:
+            scheduler.load_state_dict(checkpoint['scheduler'])
+        return start_epoch, global_step
+
     def get_optimizer_from_config(self, optimizer, model):
         return optimizer(model.parameters(), lr = float(self.lr))
 
     def get_scheduler_from_config(self, scheduler, optimizer):
         return scheduler(optimizer, gamma = float(self.gamma), step_size = int(self.step_size))
 
-    def get_trainer_from_config(self, trainer):
-        return trainer(self.epochs)
+    def get_trainer_from_config(self, trainer, start_epoch = 0, global_step = 0):
+        return trainer(self.epochs, start_epoch = start_epoch, global_step = global_step)
 
     def get_dataloaders_from_config(self, dataset):
         return DataLoader(

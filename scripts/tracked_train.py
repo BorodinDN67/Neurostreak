@@ -11,7 +11,7 @@ from torch.utils.data import random_split
 from loguru import logger
 from src.config.config import Config
 from neurostreak.trainer import TrainerNeuroStreak
-from neurostreak.dataset import NeuroStreakDataset
+from neurostreak.dataset import NeuroStreakDataset, NeuroStreakConcatDataset, split_dataset
 import torch
 import torch.optim as optim
 import numpy as np
@@ -21,7 +21,14 @@ CURRENT_ROOT = Path(__file__).resolve()
 PROJECT_ROOT = CURRENT_ROOT.parent.parent
 CONFIG_PATH = PROJECT_ROOT /  Path('src/config/config.yaml')
 CONFIG_TRAIN = PROJECT_ROOT /  Path('src/config/config_train.yaml')
-DATASET_PATHS =[ PROJECT_ROOT / Path('data/clean_water_20m')]
+#Пожалуйста, пока что важно в порядке возрастания их заполнять ((
+DATASET_PATHS =[
+    PROJECT_ROOT / Path('data/clean_water_10m'),
+    PROJECT_ROOT / Path('data/clean_water_13m'),
+    PROJECT_ROOT / Path('data/clean_water_15m'),
+    PROJECT_ROOT / Path('data/clean_water_20m'),
+]
+CONFIG_DATA_PATH = PROJECT_ROOT / 'data'
 
 mlflow.set_tracking_uri("sqlite:///C:/Users/supervisor.LTCPC-280426-01/PycharmProjects/NeuroStreak/mlflow.db")
 
@@ -46,17 +53,22 @@ def tracked_train():
 
         #Получение основных объектов и модели
         model = config.get_model_from_config().to('cuda')
-        dataset = NeuroStreakDataset(DATASET_PATHS[0])
+        dataset = NeuroStreakConcatDataset(DATASET_PATHS)
+
+
+        train_dataloader, validation_dataloader, test_dataloader = split_dataset(
+            dataset=dataset,
+            train_scheme = CONFIG_DATA_PATH / 'test_config.yaml',
+            validation_scheme= CONFIG_DATA_PATH / 'valid_config.yaml',
+            test_scheme= CONFIG_DATA_PATH / 'test_config.yaml',
+            config_dl = config
+        )
+
         pos_weights = torch.tensor(
-            [15.0],
+            [1.5],
             dtype=torch.float32,
             device='cuda'
         )
-        train_dataset, val_dataset = random_split(dataset, [int(len(dataset) * config.train_size),
-                                                            len(dataset) - int(len(dataset) * config.train_size)],
-                                                  generator=torch.Generator().manual_seed(42))
-        train_dataloader = DataLoader(dataset=train_dataset, batch_size=128, shuffle=True, num_workers=4, pin_memory=True)
-        val_dataloader = DataLoader(dataset=val_dataset, batch_size=32, shuffle=False, num_workers=0)
 
         loss = nn.BCEWithLogitsLoss(pos_weight=pos_weights)
         optimizer = config.get_optimizer_from_config(optim.Adam, model)
@@ -65,7 +77,7 @@ def tracked_train():
 
         #Очевидный запуск обучения
         model.train()
-        trainer.fit(model, train_dataloader, val_dataloader, loss, optimizer, scheduler)
+        trainer.fit(model, train_dataloader, validation_dataloader, loss, optimizer, scheduler)
 
         #Логгируем
         with open("model_summary.txt", "w") as f:

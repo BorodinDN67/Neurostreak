@@ -1,6 +1,7 @@
 from loguru import logger
 from pathlib import Path
 import torch
+import random
 import mlflow
 import numpy as np
 from sklearn.metrics import roc_auc_score, average_precision_score, matthews_corrcoef, brier_score_loss
@@ -11,18 +12,22 @@ class TrainerNeuroStreak:
     def __init__(
         self,
         epochs,
+        start_epoch = 0,
+        global_step = 0
     ):
         self.epochs = epochs
         self.checkpoint_path = 'checkpoints_lol'
+        self.start_epoch = start_epoch
+        self.global_step = global_step
 
     def fit(self,model, train_dataloader, val_dataloader, loss, optimizer, scheduler=None):
         logger.info(f"Начали обучение на {self.epochs} эпохах")
         device = next(model.parameters()).device
         validation_results = []
-        step_for_logs = 0
+        step_for_logs = self.global_step
         debug_stats = []
 
-        for epoch in range(self.epochs):
+        for epoch in range(self.start_epoch, self.epochs):
             model.train()
             cnt_batch = 0
             logger.info(f'Эпоха: {epoch + 1}')
@@ -167,13 +172,13 @@ class TrainerNeuroStreak:
                 step=epoch
             )
             validation_results.append(metrics)
-            self.save_checkpoint(model, epoch = epoch, validation_result = validation_results)
+            self.save_checkpoint(model, epoch = epoch, validation_result = validation_results, global_step = step_for_logs)
             logger.success(f'Обучение закончено и веса сохранены в артефактах')
             debug_stats.clear()
             if scheduler is not None:
                 scheduler.step()
 
-    def save_checkpoint(self, model, optimizer=None, scheduler=None,epoch=None, filename_user=None, validation_result=None, config_trainer=None):
+    def save_checkpoint(self, model, optimizer=None, scheduler=None,epoch=None, filename_user=None, validation_result=None, config_trainer=None, global_step = None):
         # --- локальный полный чекпоинт ---
         path = Path(__file__).parent.parent.parent / Path(self.checkpoint_path)
         path.mkdir(parents=True, exist_ok=True)
@@ -196,8 +201,21 @@ class TrainerNeuroStreak:
         torch.save(checkpoint, full_path)
 
         # --- в MLflow ---
-        mlflow.log_artifact(str(full_path), artifact_path="checkpoints")
-        mlflow.pytorch.log_model(model, artifact_path=f"model_{epoch}", serialization_format = 'pickle' )
+        checkpoint = {
+            'model': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'scheduler': scheduler.state_dict() if scheduler is not None else None,
+            "epoch": epoch,
+            'global_step': global_step,
+            'rng_torch': torch.get_rng_state(),
+            'rng_numpy': np.random.get_state(),
+        }
+
+        if torch.cuda.is_available():
+            checkpoint['rng_cuda'] = torch.cuda.get_rng_state()
+
+        # mlflow.log_artifact(str(full_path), artifact_path="checkpoints")
+        mlflow.pytorch.log_state_dict(checkpoint, artifact_path=f"checkpoints/epoch_{epoch:03d}")
 
 
     def validation(self, val_loader, model, threshold=0.5, epoch = None):

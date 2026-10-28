@@ -1,7 +1,7 @@
 meta:
-  exp_name: 'FFT&CWT_finetuning_3_to_5_epoch_0_2'
+  exp_name: 'FFT&CWT_all_data'
 optimizer:
-  lr: 1e-4
+  lr: 1e-3
   epochs: 2
 scheduler:
   gamma: 0.7
@@ -9,8 +9,11 @@ scheduler:
 dataloader:
   batch_size: 128
   shuffle: True
+  num_workers: 4
 process:
   train_size: 0.85
   val_size: 0.15
 checkpoint:
-  model_id: m-ba07356dbab44298a335f1dbfd2662ec
+  model_id: m-2a462234f8024743a79c68c9a13bdf7b
+  run_id: None
+  epoch: 0

@@ -16,6 +16,7 @@ class NeuroStreakDataset(Dataset):
         self.len = len(list(Path(self.image_path).glob('*.tif')) )
         self.dim = 2048
         self.cashe = dict()
+        self.template_len = 1024
 
     def __len__(self):
         return self.len * self.dim
@@ -34,6 +35,7 @@ class NeuroStreakDataset(Dataset):
         img_n, row = idx // self.dim + 1, idx % self.dim
 
         template = np.load(self.template_path)
+        template = np.pad(template,(0, self.template_len - len(template)), constant_values = np.mean(template), mode='constant')
 
         labels = None
 
@@ -71,9 +73,14 @@ class NeuroStreakConcatDataset(Dataset):
 
         self.lens = [len(dataset) for dataset in self.datasets]
         self.len = sum(self.lens)
+        self.dim = self.datasets[0].dim
 
     def __len__(self):
         return self.len
+
+
+    def lens(self):
+        return self.lens
 
     def __getitem__(self, idx):
 
